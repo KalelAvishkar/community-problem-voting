@@ -8,7 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
 
     private static final String UPLOAD_DIR =
-            "C:/Users/kalel/Downloads/community-problem-voting/community-problem-voting/uploads/";
+            "C:/Users/kalel/Downloads/community-problem-voting/uploads/";
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {

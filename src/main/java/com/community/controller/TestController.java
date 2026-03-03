@@ -20,7 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class TestController {
 
     private static final String UPLOAD_DIR =
-            "C:/Users/kalel/Downloads/community-problem-voting/community-problem-voting/uploads/";
+            "C:/Users/kalel/Downloads/community-problem-voting/uploads/";
 
     private final ProblemRepository problemRepository;
     private final UserRepository userRepository;
