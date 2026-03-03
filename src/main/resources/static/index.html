@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Community Problems</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-6 bg-gray-100">
+
+<!-- 🔄 GLOBAL LOADER -->
+<div id="loader"
+     class="fixed inset-0 bg-black bg-opacity-40 hidden flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+        <p class="mt-4 font-semibold text-gray-700">Loading...</p>
+    </div>
+</div>
+
+<!-- ✅ SUCCESS TOAST -->
+<div id="toast"
+     class="fixed top-5 right-5 hidden px-6 py-3 rounded-xl shadow-lg text-white z-50 transition-all duration-500">
+</div>
+
+<h2 class="text-2xl font-bold mb-4">Community Problems</h2>
+
+<button onclick="logout()" class="bg-red-500 text-white px-3 py-1 rounded">Logout</button>
+<span id="user-buttons" class="ml-4"></span>
+
+<h3 id="username" class="mt-4 font-semibold"></h3>
+<hr class="my-4">
+<div id="list"></div>
+
+<script>
+
+    let userRole = "";
+    let currentUserEmail = "";
+    let token = localStorage.getItem("token");
+
+    /* =======================
+       LOADER FUNCTIONS
+    ======================= */
+    function showLoader() {
+        document.getElementById("loader").classList.remove("hidden");
+    }
+
+    function hideLoader() {
+        document.getElementById("loader").classList.add("hidden");
+    }
+
+    /* =======================
+       TOAST FUNCTION
+    ======================= */
+    function showToast(message, type="success") {
+        const toast = document.getElementById("toast");
+        toast.innerText = message;
+
+        toast.classList.remove("hidden");
+
+        if(type === "success"){
+            toast.classList.remove("bg-red-600");
+            toast.classList.add("bg-green-600");
+        } else {
+            toast.classList.remove("bg-green-600");
+            toast.classList.add("bg-red-600");
+        }
+
+        setTimeout(() => {
+            toast.classList.add("hidden");
+        }, 3000);
+    }
+
+    function logout() {
+        localStorage.removeItem("token");
+        window.location.href = "login.html";
+    }
+
+    function checkAuth() {
+        if (!token) {
+            window.location.href = "login.html";
+            return false;
+        }
+
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            currentUserEmail = payload.sub;
+            userRole = payload.role;
+
+            document.getElementById("username").innerText =
+                "Welcome: " + payload.sub + " (" + userRole + ")";
+
+            return true;
+        } catch (e) {
+            logout();
+            return false;
+        }
+    }
+
+    window.onload = function () {
+
+        if (!checkAuth()) return;
+
+        const userButtons = document.getElementById("user-buttons");
+
+        if(userRole === "ROLE_USER") {
+            userButtons.innerHTML = `
+                <button onclick="goToCreate()" class="bg-blue-500 text-white px-3 py-1 rounded ml-2">Create Problem</button>
+                <button onclick="goToInquiry()" class="bg-green-500 text-white px-3 py-1 rounded ml-2">Create Inquiry</button>
+            `;
+        }
+        else if(userRole === "ROLE_ADMIN") {
+            userButtons.innerHTML = `
+                <button onclick="goToCreate()" class="bg-blue-500 text-white px-3 py-1 rounded ml-2">Create Problem</button>
+                <button onclick="goToAdminInquiries()" class="bg-purple-500 text-white px-3 py-1 rounded ml-2">All Inquiries</button>
+            `;
+        }
+
+        loadProblems();
+    };
+
+    function goToCreate() { window.location.href = "create.html"; }
+    function goToInquiry() { window.location.href = "inquiry.html"; }
+    function goToAdminInquiries() { window.location.href = "admin-inquiries.html"; }
+
+    async function loadProblems() {
+
+        try{
+            showLoader();
+
+            const response = await fetch("http://localhost:8080/problems", {
+                headers: { "Authorization": "Bearer " + token }
+            });
+
+            if (!response.ok) {
+                showToast("Session expired", "error");
+                logout();
+                return;
+            }
+
+            const problems = await response.json();
+            let html = "";
+
+            problems.forEach(p => {
+
+                html += `
+                    <div class="bg-white p-4 mb-6 rounded shadow">
+                        <h3 class="text-xl font-bold">${p.title}</h3>
+                        <p>${p.description}</p>
+                        <p><b>Location:</b> ${p.location}</p>
+                        <p><b>Status:</b> ${p.status}</p>
+                        <p><b>Votes:</b> ${p.votes}</p>
+                `;
+
+                if(p.images && p.images.length > 0){
+                    html += `<div class="mt-3 flex flex-wrap gap-4">`;
+
+                    p.images.forEach(img => {
+                        html += `
+                            <div class="relative">
+                                <img src="http://localhost:8080/uploads/${img.fileName}"
+                                     class="w-40 h-40 object-cover rounded border"/>
+
+                                ${(userRole === "ROLE_USER" || userRole === "ROLE_ADMIN") ? `
+                                    <button onclick="deleteImage(${img.id})"
+                                            class="absolute top-1 right-1 bg-red-600 text-white text-xs px-2 py-1 rounded">
+                                        X
+                                    </button>
+                                ` : ""}
+                            </div>
+                        `;
+                    });
+
+                    html += `</div>`;
+                }
+
+                if(userRole === "ROLE_USER") {
+                    html += `
+                        <form onsubmit="postImage(event, ${p.id})" class="mt-4">
+                            <input type="file" name="photos" multiple required class="border p-1">
+                            <button type="submit"
+                                    class="bg-green-500 text-white px-3 py-1 rounded ml-2">
+                                Post Image
+                            </button>
+                        </form>
+                    `;
+                }
+
+                if(userRole === "ROLE_USER") {
+                    html += `
+                        <div class="mt-3">
+                            <button onclick="vote(${p.id})"
+                                    class="bg-blue-500 text-white px-3 py-1 rounded mr-2">
+                                Vote
+                            </button>
+                            <button onclick="undoVote(${p.id})"
+                                    class="bg-yellow-500 text-white px-3 py-1 rounded">
+                                Undo Vote
+                            </button>
+                        </div>
+                    `;
+                }
+
+                if (userRole === "ROLE_ADMIN") {
+                    html += `
+                        <div class="mt-3">
+                            <button onclick="changeStatus(${p.id}, 'IN_PROGRESS')"
+                                    class="bg-orange-500 text-white px-3 py-1 rounded mr-2">
+                                In Progress
+                            </button>
+                            <button onclick="changeStatus(${p.id}, 'RESOLVED')"
+                                    class="bg-green-600 text-white px-3 py-1 rounded mr-2">
+                                Resolve
+                            </button>
+                            <button onclick="deleteProblem(${p.id})"
+                                    class="bg-red-600 text-white px-3 py-1 rounded">
+                                Delete
+                            </button>
+                        </div>
+                    `;
+                }
+
+                html += `</div>`;
+            });
+
+            document.getElementById("list").innerHTML = html;
+
+        } finally{
+            hideLoader();
+        }
+    }
+
+    async function deleteImage(imageId) {
+
+        if(!confirm("Delete this image?")) return;
+
+        try{
+            showLoader();
+
+            const response = await fetch(
+                `http://localhost:8080/problems/images/${imageId}`,
+                {
+                    method: "DELETE",
+                    headers: { "Authorization": "Bearer " + token }
+                }
+            );
+
+            const message = await response.text();
+
+            if(response.ok){
+                showToast(message, "success");
+                loadProblems();
+            } else {
+                showToast("Delete failed: " + message, "error");
+            }
+
+        } finally{
+            hideLoader();
+        }
+    }
+
+    async function postImage(event, problemId) {
+        event.preventDefault();
+
+        try{
+            showLoader();
+
+            const formData = new FormData();
+            const files = event.target.querySelector('input[type="file"]').files;
+
+            for(let i=0; i<files.length; i++){
+                formData.append("photos", files[i]);
+            }
+
+            const response = await fetch(
+                `http://localhost:8080/problems/${problemId}/photos`,
+                {
+                    method: "POST",
+                    headers: { "Authorization": "Bearer " + token },
+                    body: formData
+                }
+            );
+
+            if(response.ok){
+                showToast("Images uploaded!", "success");
+                loadProblems();
+            } else {
+                showToast("Upload failed!", "error");
+            }
+
+        } finally{
+            hideLoader();
+        }
+    }
+
+    async function vote(id) {
+        try{
+            showLoader();
+
+            const response = await fetch(
+                `http://localhost:8080/problems/${id}/vote`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+
+            if(response.ok){
+                showToast("Voted successfully", "success");
+                loadProblems();
+            }
+            else showToast("Already voted or unauthorized!", "error");
+
+        } finally{
+            hideLoader();
+        }
+    }
+
+    async function undoVote(id) {
+        try{
+            showLoader();
+
+            const response = await fetch(
+                `http://localhost:8080/problems/${id}/undo-vote`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+
+            if(response.ok){
+                showToast("Vote removed", "success");
+                loadProblems();
+            }
+            else showToast("You have not voted yet!", "error");
+
+        } finally{
+            hideLoader();
+        }
+    }
+
+    async function changeStatus(id, status) {
+
+        try{
+            showLoader();
+
+            const response = await fetch(
+                `http://localhost:8080/problems/admin/status/${id}?status=${status}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+
+            const message = await response.text();
+
+            if(response.ok){
+                showToast(message, "success");
+                loadProblems();
+            }
+            else{
+                showToast("Status change failed: " + message, "error");
+            }
+
+        } finally{
+            hideLoader();
+        }
+    }
+
+    async function deleteProblem(id) {
+        if(!confirm("Are you sure you want to delete this problem?")) return;
+
+        try{
+            showLoader();
+
+            const response = await fetch(
+                `http://localhost:8080/problems/admin/delete/${id}`,
+                {
+                    method: "DELETE",
+                    headers: { "Authorization": "Bearer " + token }
+                }
+            );
+
+            const message = await response.text();
+
+            if(response.ok){
+                showToast(message, "success");
+                loadProblems();
+            }
+            else{
+                showToast("Delete failed: " + message, "error");
+            }
+
+        } finally{
+            hideLoader();
+        }
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin – Inquiries</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+
+<!-- 🔔 TOAST CONTAINER -->
+<div id="toast-container" class="fixed top-5 right-5 space-y-3 z-50"></div>
+
+<!-- 🔷 Common Navbar -->
+<nav class="bg-white shadow-md px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center space-x-6">
+        <h1 class="text-xl font-bold text-blue-600 cursor-pointer"
+            onclick="goDashboard()">
+            Community System
+        </h1>
+
+        <button onclick="goDashboard()" class="text-gray-600 hover:text-blue-600 font-medium">
+            Dashboard
+        </button>
+
+        <button onclick="goCreateProblem()" class="text-gray-600 hover:text-blue-600 font-medium">
+            Create Problem
+        </button>
+
+        <button onclick="goAdminPanel()" class="text-purple-600 font-medium">
+            Admin Panel
+        </button>
+    </div>
+
+    <div class="flex items-center space-x-4">
+        <span id="navUser" class="text-sm font-semibold text-gray-700"></span>
+        <button onclick="logout()"
+                class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition">
+            Logout
+        </button>
+    </div>
+</nav>
+
+<!-- 🔄 GLOBAL LOADER -->
+<div id="loader" class="fixed inset-0 bg-black bg-opacity-40 hidden flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+        <p class="mt-4 font-semibold text-gray-700">Loading...</p>
+    </div>
+</div>
+
+<div class="max-w-5xl mx-auto p-6">
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">All Inquiries</h2>
+    <div id="list" class="space-y-4"></div>
+</div>
+
+<script>
+
+    let token = localStorage.getItem("token");
+    if (!token) window.location.href = "login.html";
+
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.role !== "ROLE_ADMIN") {
+        showToast("Admin access required!", "error");
+        window.location.href = "index.html";
+    }
+
+    document.getElementById("navUser").innerText =
+        payload.sub + " (" + payload.role + ")";
+
+    function showLoader(){ document.getElementById("loader").classList.remove("hidden"); }
+    function hideLoader(){ document.getElementById("loader").classList.add("hidden"); }
+
+    function showToast(message, type="success"){
+        const toast=document.createElement("div");
+        let bg="bg-green-500";
+        if(type==="error") bg="bg-red-500";
+        toast.className=`${bg} text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500 translate-x-full opacity-0`;
+        toast.innerText=message;
+        document.getElementById("toast-container").appendChild(toast);
+        setTimeout(()=>toast.classList.remove("translate-x-full","opacity-0"),100);
+        setTimeout(()=>{toast.classList.add("translate-x-full","opacity-0");setTimeout(()=>toast.remove(),500)},3000);
+    }
+
+    async function loadInquiries() {
+        try {
+            showLoader();
+            const response = await fetch("http://localhost:8080/inquiries/admin/all", {
+                headers: { "Authorization": "Bearer " + token }
+            });
+
+            if (!response.ok) {
+                showToast("Session expired","error");
+                window.location.href="login.html";
+                return;
+            }
+
+            const inquiries = await response.json();
+            let html="";
+            inquiries.forEach(i=>{
+                html+=`
+                <div class="bg-white p-6 rounded-2xl shadow-lg border">
+                    <h3 class="text-lg font-bold text-blue-600 mb-2">
+                        Problem: ${i.problem.title}
+                    </h3>
+                    <p><span class="font-semibold">User:</span> ${i.userName} (${i.email})</p>
+                    <p><span class="font-semibold">Phone:</span> ${i.phoneNumber}</p>
+                    <p><span class="font-semibold">Message:</span> ${i.message}</p>
+                    <p class="text-sm text-gray-500 mt-2">
+                        Created At: ${new Date(i.createdAt).toLocaleString()}
+                    </p>
+                </div>`;
+            });
+            document.getElementById("list").innerHTML=html;
+        } finally { hideLoader(); }
+    }
+
+    function goDashboard(){ window.location.href="index.html"; }
+    function goCreateProblem(){ window.location.href="create.html"; }
+    function goAdminPanel(){ window.location.href="admin-inquiries.html"; }
+    function logout(){ localStorage.removeItem("token"); window.location.href="login.html"; }
+
+    window.onload=loadInquiries;
+
+</script>
+</body>
+</html>

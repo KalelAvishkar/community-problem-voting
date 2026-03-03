@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Signup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+
+<div class="bg-white shadow-2xl rounded-2xl p-8 w-96">
+
+    <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">
+        Create Your Account
+    </h2>
+
+    <input type="text"
+           id="name"
+           placeholder="Enter Full Name"
+           class="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
+
+    <input type="email"
+           id="email"
+           placeholder="Enter Email"
+           class="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
+
+    <input type="password"
+           id="password"
+           placeholder="Enter Password"
+           class="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
+
+    <!-- IMPORTANT: type="button" -->
+    <button type="button"
+            onclick="signup()"
+            class="w-full bg-green-500 text-white p-3 rounded-lg hover:bg-green-600 transition duration-300">
+        Signup
+    </button>
+
+    <div class="text-center mt-4">
+        <a href="login.html"
+           class="text-blue-500 hover:underline text-sm">
+            Already have an account? Login
+        </a>
+    </div>
+
+    <p id="msg" class="text-center mt-4 text-red-500"></p>
+
+</div>
+
+<script>
+
+    async function signup() {
+
+        const name = document.getElementById("name").value;
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+
+        if (!name || !email || !password) {
+            document.getElementById("msg").innerText = "Please fill all fields!";
+            return;
+        }
+
+        const response = await fetch("/auth/signup", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name: name,
+                email: email,
+                password: password
+            })
+        });
+
+        const data = await response.text();
+
+        if (response.ok) {
+
+            const msg = document.getElementById("msg");
+            msg.classList.remove("text-red-500");
+            msg.classList.add("text-green-500");
+            msg.innerText = "Signup Successful! Redirecting...";
+
+            setTimeout(() => {
+                window.location.href = "login.html";
+            }, 1500);
+
+        } else {
+            document.getElementById("msg").innerText = data;
+        }
+    }
+
+</script>
+
+</body>
+</html>

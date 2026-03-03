@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="flex h-screen">
+
+  <!-- SIDEBAR -->
+  <div class="w-64 bg-gray-900 text-white flex flex-col">
+
+    <div class="p-6 text-2xl font-bold border-b border-gray-700">
+      Community App
+    </div>
+
+    <nav class="flex-1 p-4 space-y-3">
+
+      <a href="dashboard.html"
+         class="block px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition">
+        Dashboard
+      </a>
+
+      <a href="create-problem.html"
+         class="block px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+        Create Problem
+      </a>
+
+      <a href="inquiry.html"
+         class="block px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+        Create Inquiry
+      </a>
+
+      <a href="admin.html"
+         class="block px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+        Admin Panel
+      </a>
+
+      <button onclick="logout()"
+              class="w-full text-left px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 transition">
+        Logout
+      </button>
+
+    </nav>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="flex-1 flex flex-col">
+
+    <!-- HEADER -->
+    <div class="bg-white shadow p-4 flex justify-between items-center">
+      <h1 class="text-2xl font-semibold text-gray-700">
+        Dashboard
+      </h1>
+
+      <span id="userEmail" class="text-gray-500 text-sm"></span>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="p-6 overflow-y-auto">
+
+      <!-- STATS CARDS -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+        <div class="bg-white p-6 rounded-2xl shadow">
+          <h3 class="text-gray-500">Total Problems</h3>
+          <p id="totalProblems" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow">
+          <h3 class="text-gray-500">Total Votes</h3>
+          <p id="totalVotes" class="text-3xl font-bold text-green-600 mt-2">0</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow">
+          <h3 class="text-gray-500">My Problems</h3>
+          <p id="myProblems" class="text-3xl font-bold text-purple-600 mt-2">0</p>
+        </div>
+
+      </div>
+
+      <!-- RECENT PROBLEMS -->
+      <div class="bg-white p-6 rounded-2xl shadow">
+
+        <h2 class="text-xl font-semibold mb-4">
+          Recent Problems
+        </h2>
+
+        <table class="w-full border-collapse">
+
+          <thead>
+          <tr class="border-b">
+            <th class="text-left py-2">Title</th>
+            <th class="text-left py-2">Votes</th>
+            <th class="text-left py-2">Status</th>
+          </tr>
+          </thead>
+
+          <tbody id="problemTable">
+          <!-- Data load hoga -->
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+      window.location.href = "login.html";
+  }
+
+  function logout() {
+      localStorage.removeItem("token");
+      window.location.href = "login.html";
+  }
+
+  async function loadDashboard() {
+
+      try {
+
+          const response = await fetch("/problems", {
+              headers: {
+                  "Authorization": "Bearer " + token
+              }
+          });
+
+          const problems = await response.json();
+
+          document.getElementById("totalProblems").innerText = problems.length;
+
+          let totalVotes = 0;
+          problems.forEach(p => totalVotes += p.voteCount || 0);
+
+          document.getElementById("totalVotes").innerText = totalVotes;
+
+          const table = document.getElementById("problemTable");
+          table.innerHTML = "";
+
+          problems.slice(0, 5).forEach(p => {
+
+              const row = `
+                  <tr class="border-b hover:bg-gray-50">
+                      <td class="py-2">${p.title}</td>
+                      <td class="py-2">${p.voteCount || 0}</td>
+                      <td class="py-2">${p.status || "OPEN"}</td>
+                  </tr>
+              `;
+
+              table.innerHTML += row;
+          });
+
+      } catch (error) {
+          console.error(error);
+      }
+  }
+
+  loadDashboard();
+
+</script>
+
+</body>
+</html>
