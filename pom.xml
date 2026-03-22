@@ -6,15 +6,23 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
+	<!-- Parent -->
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.2.2</version>
+		<relativePath/>
 	</parent>
 
+	<!-- Project Info -->
 	<groupId>com.community</groupId>
 	<artifactId>community-problem-voting</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<name>community-problem-voting</name>
+	<description>Community Problem Voting System</description>
+
+	<!-- JAR -->
+	<packaging>jar</packaging>
 
 	<properties>
 		<java.version>17</java.version>
@@ -40,10 +48,17 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
-		<!-- MYSQL -->
+		<!-- MYSQL (local ke liye rahega) -->
 		<dependency>
 			<groupId>com.mysql</groupId>
 			<artifactId>mysql-connector-j</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- H2 DATABASE (Render ke liye IMPORTANT) -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 
@@ -62,25 +77,36 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-mail</artifactId>
-		</dependency>
-
-		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-jackson</artifactId>
 			<version>0.11.5</version>
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- MAIL -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
 	</dependencies>
 
+	<!-- BUILD -->
 	<build>
+		<finalName>community-problem-voting</finalName>
 		<plugins>
+
+			<!-- Spring Boot Plugin -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
+			<!-- JAR Plugin -->
+			<plugin>
+				<artifactId>maven-jar-plugin</artifactId>
+			</plugin>
+
 		</plugins>
 	</build>
 
