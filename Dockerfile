@@ -1,17 +1,22 @@
-# Use Java 17
-FROM eclipse-temurin:17-jdk
+# Step 1: Build JAR using Maven
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 
-# App directory
 WORKDIR /app
-
-# Copy project files
 COPY . .
 
-# Build jar
-RUN ./mvnw clean package -DskipTests
+# ✅ mvnw ko executable permission dena
+RUN chmod +x mvnw
 
-# Expose port
+# ✅ build jar
+RUN mvn clean package -DskipTests
+
+# Step 2: Run JAR
+FROM eclipse-temurin:17-jdk
+
+WORKDIR /app
+
+COPY --from=build /app/target/community-problem-voting.jar app.jar
+
 EXPOSE 8080
 
-# Run app
-CMD ["java", "-jar", "target/community-problem-voting.jar"]
+CMD ["java", "-jar", "app.jar"]
